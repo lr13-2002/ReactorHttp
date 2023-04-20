@@ -14,7 +14,7 @@ int TcpConnection::processRead(void* arg) {
 		conn->channel->writeEventEnable(true);
 		conn->evLoop->AddTask(conn->channel, ElemType::MODIFY);
 #endif //  MSG_SEND_AUTO
-		int flag = conn->m_request->parseRequest(conn->m_readBuf, conn->m_response,
+		int flag = conn->m_request->parseHttpRequest(conn->m_readBuf, conn->m_response,
 			conn->m_writeBuf, socket);
 		if (!flag) {
 			//解析失败，回复一个简单的html
@@ -73,7 +73,6 @@ TcpConnection::TcpConnection(int fd, EventLoop* evloop) {
 
 TcpConnection::~TcpConnection() {
 	if (m_readBuf && m_readBuf->ReadableSize() == 0 && m_writeBuf && m_writeBuf->ReadableSize() == 0) {
-		delete m_channel;
 		delete m_readBuf;
 		delete m_writeBuf;
 		delete m_request;

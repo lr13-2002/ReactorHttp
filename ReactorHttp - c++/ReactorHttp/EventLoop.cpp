@@ -106,7 +106,7 @@ int EventLoop::ProcessTask() {
 	//取出头节点
 	while (!q.empty()) {
 		m_mutex.lock();
-		struct ChannelElement* node = q.front(); q.pop();
+		ChannelElement* node = q.front(); q.pop();
 		m_mutex.unlock();
 		Channel* channel = node->channel;
 
@@ -134,7 +134,7 @@ int EventLoop::Add(Channel* channel) {
 	int fd = channel->get_Socket();
 	debug("添加的文件 : %d??", fd);
 	if (!m_channelMap.count(fd)) {
-		m_channelMap[fd] = channel;
+		m_channelMap.insert(make_pair(fd, channel));
 		dispatcher->setChannel(channel);
 		debug("添加的文件 : %d!!", fd);
 		int ret = dispatcher->add();

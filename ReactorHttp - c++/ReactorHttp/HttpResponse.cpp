@@ -1,7 +1,7 @@
 #include "HttpResponse.h"
 #include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
+#include <iostream>
 
 #define ResHeaderSize 16;
 HttpResponse::HttpResponse() {
@@ -24,11 +24,13 @@ void HttpResponse::AddHeader(const string key, const string value) {
 void HttpResponse::PrepareMsg(Buffer* sendBuf, int socket) {
 	//状态行
 	char tmp[1024] = { 0 };
-	sprintf(tmp, "HTTP/1.1 %d %s\r\n", m_statusCode, m_info.at((int)m_statusCode));
+	int code = static_cast<int>(m_statusCode);
+	sprintf(tmp, "HTTP/1.1 %d %s\r\n", code, m_info.at(code).data());
+	cout << tmp << endl;
 	sendBuf->AppendString(tmp);
 	//响应头
-	for (auto [x,y] : m_headers) {
-		sprintf(tmp, "%s: %s\r\n", x.data(), y.data());
+	for (auto it = m_headers.begin(); it != m_headers.end(); ++it) {
+		sprintf(tmp, "%s: %s\r\n", it->first.data(), it->second.data());
 		sendBuf->AppendString(tmp);
 	}
 	//空行

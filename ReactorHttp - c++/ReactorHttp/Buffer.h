@@ -38,6 +38,6 @@ public:
 private:
 	char* m_data;
 	int m_capacity;
-	int m_readPos;
-	int m_writePos;
+	int m_readPos = 0;
+	int m_writePos = 0;
 };

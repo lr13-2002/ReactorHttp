@@ -50,9 +50,9 @@ int TcpServer::acceptConnection(void* arg) {
 	//和客户端建立连接
 	int cfd = accept(server->m_lfd, NULL, NULL);
 	//取出线程池中得某个子线程
-	//EventLoop* evLoop = server->m_threadPool->takeWorkerEventLoop();
+	EventLoop* evLoop = server->m_threadPool->takeWorkerEventLoop();
 	//将 cfd 放到 TcpConnection 中处理
-	new TcpConnection(cfd, server->m_mainLoop);
+	new TcpConnection(cfd, evLoop);
 	debug("connection!!");
 	return 0;
 }

@@ -51,6 +51,11 @@ int EpollDispatcher::modify() {
 }
 int EpollDispatcher::dispatch(int timeout) {
 	int count1 = epoll_wait(m_epfd, m_events, MaxNode - 1, timeout*1000);
+	if (count1 == -1) {
+		while (errno != EINTR) {
+			perror("epoll_wait");
+		}
+	}
 	debug("count1 : %d\n", count1);
 	for (int i = 0; i < count1; i++) {
 		debug("i = %d count1 = %d\n", i, count1);

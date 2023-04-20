@@ -17,35 +17,35 @@ enum class PrecessState :char {
 class HttpRequest {
 public:
 	HttpRequest();
-	void Reset();
+	void reset();
 	//根据 key 得到请求头的 value
-	string GetHeader(const string key);
+	string getHeader(const string key);
 	//添加请求头
-	void AddHeader(const string key, const string value);
+	void addHeader(const string key, const string value);
 	//解析请求行
 	bool parseRequestLine(Buffer* readBuf);
 	//解析请求头
 	bool parseRequestHeader(struct Buffer* readBuf);
 	//解析 http 请求协议
-	bool parseRequest(Buffer* readBuf, HttpResponse* response, Buffer* sendBuf, int socket);
+	bool parseHttpRequest(Buffer* readBuf, HttpResponse* response, Buffer* sendBuf, int socket);
 
 	//处理基于 get 的 http 请求协议
-	bool processRequest(HttpResponse* response);
+	bool processHttpRequest(HttpResponse* response);
 
 	//to存储解码之后的数据，传出参数，from被解码的数据，传入参数
 	string decodeMsg(string from);
 
-	const string getFiletype(const string name);
+	const string getFileType(const string name);
 
-	static int sendDir(const string dirName, Buffer* sendBuf, int cfd);
+	static void sendDir(string dirName, Buffer* sendBuf, int cfd);
 
-	static void sendFile(const string fileName, Buffer* sendBuf, int cfd);
+	static void sendFile(string fileName, Buffer* sendBuf, int cfd);
 
-	inline void setMethod(const string method) {
+	inline void setMethod(string method) {
 		m_method = method;
 	}
 
-	inline void setUrl(string url) {
+	inline void seturl(string url) {
 		m_url = url;
 	}
 
