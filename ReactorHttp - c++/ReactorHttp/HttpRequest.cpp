@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <strings.h>
 #include <string.h>
@@ -10,7 +11,6 @@
 #include "Buffer.h"
 #include <assert.h>
 #include <ctype.h>
-#define _GNU_SOURCE
 #define HeaderSize 12
 HttpRequest::HttpRequest() {
 	Reset();

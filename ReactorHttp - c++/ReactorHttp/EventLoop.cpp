@@ -63,9 +63,8 @@ int EventLoop::eventActivate(int fd, int event) {
 		return -1;
 	}
 	if (!m_channelMap.count(fd)) {
-		debug("没找到的文件描述符 : %d", fd);
 		while (1) {
-			
+			debug("没找到的文件描述符 : %d", fd);
 		}
 	}
 	Channel* channel = m_channelMap[fd];
@@ -105,11 +104,6 @@ int EventLoop::AddTask(Channel* channel, ElemType type) {
 
 int EventLoop::ProcessTask() {
 	//取出头节点
-	if (threadName == "MainThread") {
-
-		debug("队列长度 : %d", q.size());
-		threadName.clear();
-	}
 	while (!q.empty()) {
 		m_mutex.lock();
 		struct ChannelElement* node = q.front(); q.pop();

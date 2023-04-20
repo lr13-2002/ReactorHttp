@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include "Buffer.h"
 #include <stdio.h>
 #include <string.h>
@@ -8,7 +9,7 @@
 #include <stdlib.h>
 
 Buffer::Buffer(int size) : m_capacity(size){
-	m_data = (char*)malloc(sizeof(char));
+	m_data = (char*)malloc(sizeof(size));
 	bzero(m_data, size);
 }
 
@@ -37,7 +38,7 @@ void Buffer::extendRoom(int size) {
 			return;
 		}
 		memset((char*)temp + m_capacity, 0, size);
-		m_data = (char*)temp;
+		m_data = static_cast<char*>(temp);
 		m_capacity += size;
 	}
 }
@@ -55,16 +56,8 @@ int Buffer::AppendString(const char* data, int size) {
 }
 
 int Buffer::AppendString(const char* data) {
-	if (m_data == nullptr || data == nullptr) {
-		return -1;
-	}
 	int size = strlen(data);
-	//扩容
-	extendRoom(size);
-	//数据拷贝
-	memcpy(m_data + m_writePos, data, size);
-	m_writePos += size;
-	return 0;
+	return AppendString(data, size);
 }
 
 int Buffer::AppendString(const string data) {
