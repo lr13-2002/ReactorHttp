@@ -68,7 +68,7 @@ int EventLoop::eventActivate(int fd, int event) {
 		}
 	}
 	Channel* channel = m_channelMap[fd];
-	assert(channel->fd == fd);
+	assert(channel->get_Socket() == fd);
 	debug("正在处理的文件 : %d", fd);
 	if (event & (int)FDEvent::ReadEvent && channel->readCallback) {
 		channel->readCallback(const_cast<void*>(channel->get_Arg()));

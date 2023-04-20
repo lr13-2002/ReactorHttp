@@ -53,7 +53,6 @@ int EpollDispatcher::dispatch(int timeout) {
 	int count1 = epoll_wait(m_epfd, m_events, MaxNode - 1, timeout*1000);
 	debug("count1 : %d\n", count1);
 	for (int i = 0; i < count1; i++) {
-		if(i == count1)
 		debug("i = %d count1 = %d\n", i, count1);
 		int events = m_events[i].events;
 		int fd = m_events[i].data.fd;

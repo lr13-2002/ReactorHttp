@@ -14,7 +14,6 @@ ThreadPool::~ThreadPool() {
 	}
 }
 void ThreadPool::Run() {
-	assert(pool && !pool->isStart);
 	if (m_mainLoop->getThreadID() != this_thread::get_id()) {
 		exit(0);
 	}
