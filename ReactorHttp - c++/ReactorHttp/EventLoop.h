@@ -1,50 +1,63 @@
 #pragma once
 #include "Dispatcher.h"
-#include "channelMap.h"
+#include "channel.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
-extern struct Dispatcher EpollDispatcher;
-enum ElemType{ADD, DELETE, MODIFY};
-//定义任务队列的节点
-struct ChannelElement {
-	struct ChannelElement* next;
-	int type;
-	struct Channel* channel;
+#include <queue>
+#include <thread>
+#include <mutex>
+#include <map>
+using namespace std;
+
+enum class ElemType{
+	ADD, 
+	DELETE, 
+	MODIFY
 };
-struct Dispatcher;
-struct EventLoop {
+class Channel;
+//定义任务队列的节点
+struct ChannelElement{
+	ElemType type;
+	Channel* channel;
+};
+class Dispatcher;
+class EventLoop {
+public:
+	EventLoop();
+	EventLoop(const string threadName);
+	~EventLoop();
+
+	//启动反应堆模型
+	int Run();
+	//处理待激活的文件 fd
+	int eventActivate(int fd, int event);
+	//添加任务到任务队列
+	int AddTask(Channel* channel, ElemType type);
+	//处理任务队列中的任务
+	int ProcessTask();
+	//处理dispatcher中的节点
+	int Add(Channel* channel);
+	int Remove(Channel* channel);
+	int Modify(Channel* channel);
+	//释放 channel
+	int freeChannel(Channel* channel);
+
+	int readMessage();
+	// 返回线程ID
+	inline thread::id getThreadID() {
+		return threadID;
+	}
+private:
+	void taskWake();
 	bool isQuit;
-	struct Dispatcher* dispatcher;
-	void* dispatcherData;
+	Dispatcher* dispatcher;
 	//任务队列
-	struct ChannelElement* head;
-	struct ChannelElement* tail;
+	queue<ChannelElement*>q;
 	//map
-	struct ChannelMap* channelMap;
+	map<int, Channel*> m_channelMap;
 	//线程 id ，name
-	pthread_t threadID;
-	char threadName[32];
-	pthread_mutex_t mutex;
+	thread::id threadID;
+	string threadName;
+	mutex m_mutex;
 	int socketPair[2];
 };
-//初始化
-struct EventLoop* eventLoopInit();
-struct EventLoop* eventLoopInitEx(const char* threadName);
-
-//启动反应堆模型
-int eventLoopRun(struct EventLoop* evLoop);
-//处理待激活的文件 fd
-int eventActivate(struct EventLoop* evLoop, int fd, int event);
-
-//添加任务到任务队列
-int eventLoopAddTask(struct EventLoop* evLoop, struct Channel* channel, int type);
-
-//处理任务队列中的任务
-int eventLoopProcessTask(struct EventLoop* evLoop);
-//处理dispatcher中的节点
-int eventLoopAdd(struct EventLoop* evLoop, struct Channel* channel);
-int eventLoopRemove(struct EventLoop* evLoop, struct Channel* channel);
-int eventLoopModify(struct EventLoop* evLoop, struct Channel* channel);
-//释放 channel
-int destroyChannel(struct EventLoop* evLoop, struct Channel* channel);

@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <strings.h>
 #include <string.h>
@@ -10,26 +11,14 @@
 #include "Buffer.h"
 #include <assert.h>
 #include <ctype.h>
-#define _GNU_SOURCE
 #define HeaderSize 12
 struct HttpRequest* httpRequestInit() {
 	struct HttpRequest* request = (struct HttpRequest*)malloc(sizeof(struct HttpRequest));
-	
 	httpRequestReset(request);
 	request->reqHeaders = (struct RequestHeader*)malloc(sizeof(struct RequestHeader) * HeaderSize);
 	return request;
 }
-
 void httpRequestReset(struct HttpRequest* req) {
-	if (req != NULL) {
-		httpRequestResetEx(req);
-		if (req->reqHeaders != NULL) {
-			for (int i = 0; i < req->reqHeadersNum; i++) {
-				free(req->reqHeaders[i].key);
-				free(req->reqHeaders[i].value);
-			}
-		}
-	}
 	req->curState = ParseReqLine;
 	req->method = NULL;
 	req->version = NULL;
@@ -41,26 +30,24 @@ void httpRequestResetEx(struct HttpRequest* req) {
 	free(req->url);
 	free(req->method);
 	free(req->version);
+	if (req->reqHeaders != NULL) {
+		for (int i = 0; i < req->reqHeadersNum; i++) {
+			free(req->reqHeaders[i].key);
+			free(req->reqHeaders[i].value);
+		}
+		free(req->reqHeaders);
+	}
+	httpRequestReset(req);
 }
 
 void httpRequestDestroy(struct HttpRequest* req) {
 	if (req != NULL) {
 		httpRequestResetEx(req);
-		if (req->reqHeaders != NULL) {
-			for (int i = 0; i < req->reqHeadersNum; i++) {
-				free(req->reqHeaders[i].key);
-				free(req->reqHeaders[i].value);
-			}
-		}
+		free(req);
 	}
 }
 
-enum HttpRequestState HttpRequestState(struct HttpRequest* request) {
-
-	return request->curState;
-}
-
-void httpRequestAddHeader(struct HttpRequest* request, const char* key, const char* value){
+void httpRequestAddHeader(struct HttpRequest* request, const char* key, const char* value) {
 	request->reqHeaders[request->reqHeadersNum].key = key;
 	request->reqHeaders[request->reqHeadersNum].value = value;
 	request->reqHeadersNum++;
@@ -79,10 +66,13 @@ char* httpRequestGetHeader(struct HttpRequest* request, const char* key) {
 char* splitRequestLine(const char* start, const char* end, const char* sub, char** ptr) {
 	char* space = end;
 	if (sub != NULL) {
+		int plen = strlen(start);
+		plen = strlen(sub);
 		space = (char*)memmem(start, end - start, sub, strlen(sub));
+		plen = strlen(space);
 		assert(space != NULL);
 	}
-	
+
 	int length = space - start;
 	char* tmp = (char*)malloc(length + 1);
 	strncpy(tmp, start, length);
@@ -90,71 +80,76 @@ char* splitRequestLine(const char* start, const char* end, const char* sub, char
 	*ptr = tmp;
 	return space + 1;
 }
-bool parseHttpRequestLine(struct HttpRequest* request, struct Buffer* readBuf) {
-	//¶Á³öÇëÇóÐÐ ±£´æ×Ö·û´®½áÊøµØÖ·
-	char* end = bufferFindCRLF(readBuf);
-	//±£´æ×Ö·ûÆðÊ¼µØÖ·
-	char* start = readBuf->data + readBuf->readPos;
-	//ÇëÇóÐÐ×Ü³¤¶È
-	int lineSize = end - start;
 
-	if (lineSize) {
-		//get /xxx/xx.txt http/1.1
-		//ÇëÇó·½Ê½
-		start = splitRequestLine(start, end, " ", &request->method);
-		//ÇëÇóµÄ¾²Ì¬×ÊÔ´
-		start = splitRequestLine(start, end, " ", &request->url);
-		//http °æ±¾
-		start = splitRequestLine(start, end, " ", &request->version);
-		//Îª½âÎöÇëÇóÍ·×ö×¼±¸
-		readBuf->readPos += lineSize;
-		readBuf->readPos += 2;
-		//ÐÞ¸Ä×´Ì¬
-		request->curState = ParseReqHeaders;
-		return true;
-	}
-	return false;
+bool parseHttpRequestLine(struct HttpRequest* request, struct Buffer* readBuf) {
+    //è¯»å‡ºè¯·æ±‚è¡Œ ä¿å­˜å­—ç¬¦ä¸²ç»“æŸåœ°å€
+    char* end = bufferFindCRLF(readBuf);
+    //ä¿å­˜å­—ç¬¦èµ·å§‹åœ°å€
+    char* start = readBuf->data + readBuf->readPos;
+    //è¯·æ±‚è¡Œæ€»é•¿åº¦
+    int lineSize = end - start;
+
+    if (lineSize) {
+        //get /xxx/xx.txt http/1.1
+        //è¯·æ±‚æ–¹å¼
+        start = splitRequestLine(start, end, " ", &request->method);
+        //è¯·æ±‚çš„é™æ€èµ„æº
+        start = splitRequestLine(start, end, " ", &request->url);
+        splitRequestLine(start, end, NULL, &request->version);
+        //ä¸ºè§£æžè¯·æ±‚å¤´åšå‡†å¤‡
+        readBuf->readPos += lineSize;
+        readBuf->readPos += 2;
+        //ä¿®æ”¹çŠ¶æ€
+        request->curState = ParseReqHeaders;
+        return true;
+    }
+    return false;
 }
 
-bool parseHttpRequestHeader(struct HttpRequest* request, struct Buffer* readBuf) {
-	char* end = bufferFindCRLF(readBuf);
-	if (end != NULL) {
-		char* start = readBuf->data + readBuf->readPos;
-		int lineSize = end - start;
-		char* middle = (char*)memmem(start, lineSize, ": ", 2);
-		if (middle != NULL) {
-			char* key = (char*)malloc(middle - start + 1);
-			strncpy(key, start, middle - start);
-			key[middle - start] = '\0';
+// è¯¥å‡½æ•°å¤„ç†è¯·æ±‚å¤´ä¸­çš„ä¸€è¡Œ
+bool parseHttpRequestHeader(struct HttpRequest* request, struct Buffer* readBuf)
+{
+    char* end = bufferFindCRLF(readBuf);
+    if (end != NULL)
+    {
+        char* start = readBuf->data + readBuf->readPos;
+        int lineSize = end - start;
+        // åŸºäºŽ: æœç´¢å­—ç¬¦ä¸²
+        char* middle = memmem(start, lineSize, ": ", 2);
+        if (middle != NULL)
+        {
+            char* key = malloc(middle - start + 1);
+            strncpy(key, start, middle - start);
+            key[middle - start] = '\0';
 
-			char* value = (char*)malloc(end - middle + 1);
-			strncpy(key, middle + 2, end-middle - 2);
-			value[end - middle - 2] = '\0';
+            char* value = malloc(end - middle - 2 + 1);
+            strncpy(value, middle + 2, end - middle - 2);
+            value[end - middle - 2] = '\0';
 
-			httpRequestAddHeader(request, key, value);
-
-			//ÒÆ¶¯¶ÁÊý¾ÝµÄÎ»ÖÃ
-
-			readBuf->readPos += lineSize;
-			readBuf->readPos += 2;
-		}
-		else {
-			//ÇëÇóÐÐ±»½âÎöÍêÁË£¬Ìø¹ý¿ÕÐÐ
-			readBuf->readPos += 2;
-			//ÐÞ¸Ä½âÎö×´Ì¬
-			request->curState = ParseReqDone;
-		}
-		return true;
-	}
-	return false;
+            httpRequestAddHeader(request, key, value);
+            // ç§»åŠ¨è¯»æ•°æ®çš„ä½ç½®
+            readBuf->readPos += lineSize;
+            readBuf->readPos += 2;
+        }
+        else
+        {
+            // è¯·æ±‚å¤´è¢«è§£æžå®Œäº†, è·³è¿‡ç©ºè¡Œ
+            readBuf->readPos += 2;
+            // ä¿®æ”¹è§£æžçŠ¶æ€
+            // å¿½ç•¥ post è¯·æ±‚, æŒ‰ç…§ get è¯·æ±‚å¤„ç†
+            request->curState = ParseReqDone;
+        }
+        return true;
+    }
+    return false;
 }
 
 bool parseHttpRequest(struct HttpRequest* request, struct Buffer* readBuf,
 	struct HttpResponse* response, struct Buffer* sendBuf, int socket) {
+	printf("%s\n", readBuf->data);
 	bool flag = true;
-	while (request->curState!=ParseReqDone) {
-		switch (request->curState)
-		{
+	while (request->curState != ParseReqDone) {
+		switch (request->curState) {
 		case ParseReqLine:
 			flag = parseHttpRequestLine(request, readBuf);
 			break;
@@ -169,13 +164,13 @@ bool parseHttpRequest(struct HttpRequest* request, struct Buffer* readBuf,
 		if (!flag) {
 			return flag;
 		}
-		//ÅÐ¶ÏÊÇ·ñ½âÎöÍê±ÏÁË£¬Èç¹ûÍê±ÏÁË£¬ÐèÒª×¼±¸»Ø¸´µÄÊý¾Ý
+		//åˆ¤æ–­æ˜¯å¦è§£æžå®Œæ¯•äº†ï¼Œå¦‚æžœå®Œæ¯•äº†ï¼Œéœ€è¦å‡†å¤‡å›žå¤çš„æ•°æ®
 		if (request->curState == ParseReqDone) {
-			//¸ù¾Ý½âÎö³öµÄÔ­Ê¼Êý¾Ý£¬¶Ô¿Í»§¶ËµÄÇëÇó×ö³ö´¦Àí
+			//æ ¹æ®è§£æžå‡ºçš„åŽŸå§‹æ•°æ®ï¼Œå¯¹å®¢æˆ·ç«¯çš„è¯·æ±‚åšå‡ºå¤„ç†
 			processHttpRequest(request, response);
-			//×éÖ¯ÏìÓ¦Êý¾Ý²¢·¢¸ø¿Í»§¶Ë
+			//ç»„ç»‡å“åº”æ•°æ®å¹¶å‘ç»™å®¢æˆ·ç«¯
 			httpResponsePrepareMsg(response, sendBuf, socket);
-			
+
 		}
 	}
 	request->curState = ParseReqLine;
@@ -186,8 +181,8 @@ bool processHttpRequest(struct HttpRequest* request, struct HttpResponse* respon
 	if (strcasecmp(request->method, "get") != 0) {
 		return -1;
 	}
-	//decodeMsg(request->url,request->url)
-	//´¦Àí¿Í»§¶ËÇëÇóµÄ¾²Ì¬×ÊÔ´£¨Ä¿Â¼»òÎÄ¼þ£©
+	decodeMsg(request->url, request->url);
+	//å¤„ç†å®¢æˆ·ç«¯è¯·æ±‚çš„é™æ€èµ„æºï¼ˆç›®å½•æˆ–æ–‡ä»¶ï¼‰
 	char* file = NULL;
 	if (strcmp(request->url, "/") == 0) {
 		file = "./";
@@ -195,16 +190,16 @@ bool processHttpRequest(struct HttpRequest* request, struct HttpResponse* respon
 	else {
 		file = request->url + 1;
 	}
-	//»ñÈ¡ÎÄ¼þÊôÐÔ
+	//èŽ·å–æ–‡ä»¶å±žæ€§
 	struct stat st;
 	int ret = stat(file, &st);
 	if (ret == -1) {
-		//ÎÄ¼þ²»´æÔÚ »Ø¸´ 404
+		//æ–‡ä»¶ä¸å­˜åœ¨ å›žå¤ 404
 		strcpy(response->fileName, "404.html");
 		response->statusCode = NotFound;
 		strcpy(response->statusMsg, "Not Found");
-		//ÏìÓ¦Í·
-		httpResponseAddHeader(response, "Content - type", getFiletype(".html"));
+		//å“åº”å¤´
+		httpResponseAddHeader(response, "Content-type", getFileType(".html"));
 		response->sendDataFunc = sendFile;
 		return 0;
 	}
@@ -212,31 +207,71 @@ bool processHttpRequest(struct HttpRequest* request, struct HttpResponse* respon
 	response->statusCode = OK;
 	strcpy(response->statusMsg, "OK");
 	if (S_ISDIR(st.st_mode)) {
-		//°ÑÕâ¸öÄ¿Â¼ÖÐµÄÄÚÈÝ·¢ËÍ¸ø¿Í»§¶Ë
-		//ÏìÓ¦Í·
-		httpResponseAddHeader(response, "Content - type", getFiletype(".html"));
+		//æŠŠè¿™ä¸ªç›®å½•ä¸­çš„å†…å®¹å‘é€ç»™å®¢æˆ·ç«¯
+		//å“åº”å¤´
+		httpResponseAddHeader(response, "Content-type", getFileType(".html"));
 		response->sendDataFunc = sendDir;
 	}
 	else {
-		//°ÑÕâ¸öÎÄ¼þµÄÄÚÈÝ·¢ËÍ¸ø¿Í»§¶Ë
-		//ÏìÓ¦Í·
+		//æŠŠè¿™ä¸ªæ–‡ä»¶çš„å†…å®¹å‘é€ç»™å®¢æˆ·ç«¯
+		//å“åº”å¤´
 		char tmp[12] = { 0 };
 		sprintf(tmp, "%ld", st.st_size);
-		httpResponseAddHeader(response, "Content - type", getFiletype(file));
-		httpResponseAddHeader(response, "Content - length", tmp);
+		httpResponseAddHeader(response, "Content-type", getFileType(file));
+		httpResponseAddHeader(response, "Content-length", tmp);
 		response->sendDataFunc = sendFile;
 	}
 	return 0;
 }
 
+enum HttpRequestState httpRequestState(struct HttpRequest* request) {
 
-const char* getFiletype(const char* name)
+	return request->curState;
+}
+// å°†å­—ç¬¦è½¬æ¢ä¸ºæ•´å½¢æ•°
+int hexToDec(char c) {
+	if (c >= '0' && c <= '9')
+		return c - '0';
+	if (c >= 'a' && c <= 'f')
+		return c - 'a' + 10;
+	if (c >= 'A' && c <= 'F')
+		return c - 'A' + 10;
+
+	return 0;
+}
+void decodeMsg(char* to, char* from) {
+	for (; *from != '\0'; ++to, ++from) {
+		// isxdigit -> åˆ¤æ–­å­—ç¬¦æ˜¯ä¸æ˜¯16è¿›åˆ¶æ ¼å¼, å–å€¼åœ¨ 0-f
+		// Linux%E5%86%85%E6%A0%B8.jpg
+		if (from[0] == '%' && isxdigit(from[1]) && isxdigit(from[2])) {
+			// å°†16è¿›åˆ¶çš„æ•° -> åè¿›åˆ¶ å°†è¿™ä¸ªæ•°å€¼èµ‹å€¼ç»™äº†å­—ç¬¦ int -> char
+			// B2 == 178
+			// å°†3ä¸ªå­—ç¬¦, å˜æˆäº†ä¸€ä¸ªå­—ç¬¦, è¿™ä¸ªå­—ç¬¦å°±æ˜¯åŽŸå§‹æ•°æ®
+			*to = hexToDec(from[1]) * 16 + hexToDec(from[2]);
+
+			// è·³è¿‡ from[1] å’Œ from[2] å› æ­¤åœ¨å½“å‰å¾ªçŽ¯ä¸­å·²ç»å¤„ç†è¿‡äº†
+			from += 2;
+		}
+		else {
+			// å­—ç¬¦æ‹·è´, èµ‹å€¼
+			*to = *from;
+		}
+
+	}
+	*to = '\0';
+}
+
+
+
+
+
+const char* getFileType(const char* name)
 {
 	//a.jpg a.mp4 a.html
-	//×ÔÓÒÏò×ó²éÕÒ '.' ×Ö·û£¬Èç²»´æÔÚ·µ»Ø NULL
+	//è‡ªå³å‘å·¦æŸ¥æ‰¾ '.' å­—ç¬¦ï¼Œå¦‚ä¸å­˜åœ¨è¿”å›ž NULL
 	const char* dot = strrchr(name, '.');
 	if (dot == NULL)
-		return "text/plain; charset=utf-8"; //´¿ÎÄ±¾
+		return "text/plain; charset=utf-8"; //çº¯æ–‡æœ¬
 	if (strcmp(dot, ".html") == 0 || strcmp(dot, ".htm") == 0)
 		return "text/html; charset=utf-8";
 	if (strcmp(dot, ".jpg") == 0 || strcmp(dot, ".jpeg") == 0)
@@ -269,15 +304,15 @@ const char* getFiletype(const char* name)
 		return "application/x-ns-proxy-autoconfig";
 	return "text/plain; charset=utf-8";
 }
-int sendFile(const char* fileName, struct Buffer* sendBuf, int cfd) {
-	//´ò¿ªÎÄ¼þ
+void sendFile(const char* fileName, struct Buffer* sendBuf, int cfd) {
+	//æ‰“å¼€æ–‡ä»¶
 	int fd = open(fileName, O_RDONLY);
 	assert(fd > 0);
 	while (1) {
 		char buf[1024];
 		int len = read(fd, buf, sizeof(buf));
 		if (len > 0) {
-			bufferAppendDate(sendBuf, buf, len);
+			bufferAppendData(sendBuf, buf, len);
 #ifndef MSG_SEND_AUTO
 			bufferSendData(sendBuf, cfd);
 #endif
@@ -287,12 +322,11 @@ int sendFile(const char* fileName, struct Buffer* sendBuf, int cfd) {
 		}
 		else {
 			close(fd);
-			return 0;
+			perror("read");
 		}
 	}
-	return 1;
 }
-int sendDir(const char* dirName, struct Buffer* sendBuf, int cfd) {
+void sendDir(const char* dirName, struct Buffer* sendBuf, int cfd) {
 	char buf[4096] = { 0 };
 	sprintf(buf, "<html><head><title>%s</title></head><body><table>", dirName);
 	struct dirent** namelist;
@@ -300,7 +334,6 @@ int sendDir(const char* dirName, struct Buffer* sendBuf, int cfd) {
 	for (int i = 0; i < num; i++)
 	{
 		char* name = namelist[i]->d_name;
-		if (name[0] == '.') continue;
 		struct stat st;
 		char subPath[1024] = { 0 };
 		sprintf(subPath, "%s/%s", dirName, name);
@@ -330,7 +363,6 @@ int sendDir(const char* dirName, struct Buffer* sendBuf, int cfd) {
 	bufferSendData(sendBuf, cfd);
 #endif // !MSG_SEND_AUTO
 
-	
+
 	free(namelist);
-	return 0;
 }

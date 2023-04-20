@@ -3,6 +3,8 @@
 #include "EventLoop.h"
 #include <string>
 class EventLoop;
+class Channel;
+using namespace std;
 class Dispatcher {
 public:
 	Dispatcher(EventLoop* evLoop);
@@ -17,6 +19,6 @@ public:
 	}
 protected:
 	EventLoop* m_evLoop;
-	struct Channel* m_channel;
+	Channel* m_channel;
 	string m_name = string();
 };

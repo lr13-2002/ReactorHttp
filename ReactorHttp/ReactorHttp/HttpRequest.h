@@ -2,19 +2,19 @@
 #include <stdbool.h>
 #include "Buffer.h"
 #include "HttpResponse.h"
-//ÇëÇóÍ·¼üÖµ¶Ô
+//è¯·æ±‚å¤´é”®å€¼å¯¹
 struct RequestHeader {
 	char* key;
 	char* value;
 };
-//µ±Ç°µÄ½âÎö×´Ì¬
+//å½“å‰çš„è§£æçŠ¶æ€
 enum HttpRequestState{
 	ParseReqLine,
 	ParseReqHeaders,
 	ParseReqBody,
 	ParseReqDone
 };
-//¶¨Òå http ÇëÇó½á¹¹Ìå
+//å®šä¹‰ http è¯·æ±‚ç»“æ„ä½“
 struct HttpRequest {
 	char* method;
 	char* url;
@@ -23,31 +23,33 @@ struct HttpRequest {
 	int reqHeadersNum;
 	enum HttpRequestState curState;
 };
-//³õÊ¼»¯
+//åˆå§‹åŒ–
 struct HttpRequest* httpRequestInit();
 
-//ÖØÖÃ
+//é‡ç½®
 void httpRequestReset(struct HttpRequest* req);
 void httpRequestResetEx(struct HttpRequest* req);
 void httpRequestDestroy(struct HttpRequest* req);
-//»ñÈ¡´¦Àí×´Ì¬
-enum HttpRequestState HttpRequestState(struct HttpRequest* request);
-//Ìí¼ÓÇëÇóÍ·
+//è·å–å¤„ç†çŠ¶æ€
+enum HttpRequestState httpRequestState(struct HttpRequest* request);
+//æ·»åŠ è¯·æ±‚å¤´
 void httpRequestAddHeader(struct HttpRequest* request, const char* key, const char* value);
-//¸ù¾İ key µÃµ½ÇëÇóÍ·µÄ value
+//æ ¹æ® key å¾—åˆ°è¯·æ±‚å¤´çš„ value
 char* httpRequestGetHeader(struct HttpRequest* request, const char* key);
-//½âÎöÇëÇóĞĞ
+//è§£æè¯·æ±‚è¡Œ
 bool parseHttpRequestLine(struct HttpRequest* request, struct Buffer* readBuf);
-//½âÎöÇëÇóÍ·
+//è§£æè¯·æ±‚å¤´
 bool parseHttpRequestHeader(struct HttpRequest* request, struct Buffer* readBuf);
-//½âÎö http ÇëÇóĞ­Òé
+//è§£æ http è¯·æ±‚åè®®
 bool parseHttpRequest(struct HttpRequest* request, struct Buffer* readBuf, 
 	struct HttpResponse* response, struct Buffer* sendBuf, int socket);
-//´¦Àí»ùÓÚ get µÄ http ÇëÇóĞ­Òé
+//å¤„ç†åŸºäº get çš„ http è¯·æ±‚åè®®
 bool processHttpRequest(struct HttpRequest* request, struct HttpResponse* response);
 
-const char* getFiletype(const char* name);
+const char* getFileType(const char* name);
 //
-int sendDir(const char* dirName, struct Buffer* sendBuf, int cfd);
+void sendDir(const char* dirName, struct Buffer* sendBuf, int cfd);
 
-int sendFile(const char* fileName, struct Buffer* sendBuf, int cfd);
+void sendFile(const char* fileName, struct Buffer* sendBuf, int cfd);
+void decodeMsg(char* to, char* from);
+int hexToDec(char c);

@@ -17,11 +17,12 @@ int main() {
     //切换服务器路径
     chdir("/home/lr13-2002/projects/SimpleHttp/pkl");
     //启动服务器
-    Debug("初始化tcpServer...");
-    struct TcpServer* server = tcpServerInit(port, 4);
-    Debug("初始化完成!!! 开始 runing....");
-    tcpServerRun(server);
-    system("pause");
+    TcpServer* server = new TcpServer(port, 4);
+
+    server->Run();
+    while (1) {
+
+    }
     return 0;
 }
 

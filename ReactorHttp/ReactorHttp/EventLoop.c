@@ -101,7 +101,7 @@ int eventLoopAddTask(struct EventLoop* evLoop, struct Channel* channel, int type
 	pthread_mutex_unlock(&evLoop->mutex);
 	if (evLoop->threadID == pthread_self()) {//这样为什么是子线程
 		//当前子线程
-		
+		printf("走到这的线程 : %s", evLoop->threadName);
 		eventLoopProcessTask(evLoop);
 	}
 	else {

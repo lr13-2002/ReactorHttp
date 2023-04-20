@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include "Buffer.h"
 #include <stdio.h>
 #include <string.h>
@@ -11,7 +12,7 @@ struct Buffer* bufferInit(int size) {
 	struct Buffer* buffer = (struct Buffer*)malloc(sizeof(struct Buffer));
 
 	if (buffer != NULL) {
-		buffer->data = (char*)malloc(sizeof(char));
+		buffer->data = (char*)malloc(size);
 		buffer->capacity = size;
 		buffer->readPos = 0;
 		buffer->writePos = 0;
@@ -28,17 +29,17 @@ void bufferDestroy(struct Buffer* buffer) {
 }
 
 void bufferExtendRoom(struct Buffer* buffer, int size) {
-	//ÄÚ´æ²»¹»ÓÃ ²»ÐèÒªÀ©ÈÝ
+	//å†…å­˜ä¸å¤Ÿç”¨ ä¸éœ€è¦æ‰©å®¹
 	if (bufferWriteableSize(buffer) >= size) {
 	}
-	//ÄÚ´æÐèÒªºÏ²¢²Å¹»ÓÃ
+	//å†…å­˜éœ€è¦åˆå¹¶æ‰å¤Ÿç”¨
 	else if (buffer->readPos + bufferWriteableSize(buffer) >= size) {
 		int readable = bufferReadableSize(buffer);
 		memcpy(buffer->data, buffer->data + buffer->readPos, readable);
 		buffer->writePos = readable;
 		buffer->readPos = 0;
 	}
-	//ÄÚ´æ²»¹»ÓÃÀ©ÈÝ
+	//å†…å­˜ä¸å¤Ÿç”¨æ‰©å®¹
 	else {
 		void* temp = realloc(buffer->data, buffer->capacity + size);
 		if (temp == NULL) {
@@ -58,13 +59,13 @@ int bufferReadableSize(struct Buffer* buffer) {
 	return buffer->writePos - buffer->readPos;
 }
 
-int bufferAppendDate(struct Buffer* buffer, const char* data, int size) {
+int bufferAppendData(struct Buffer* buffer, const char* data, int size) {
 	if (buffer == NULL || data == NULL || data <= 0) {
 		return -1;
 	}
-	//À©ÈÝ
+	//æ‰©å®¹
 	bufferExtendRoom(buffer, size);
-	//Êý¾Ý¿½±´
+	//æ•°æ®æ‹·è´
 	memcpy(buffer->data + buffer->writePos, data, size);
 	buffer->writePos += size;
 	return 0;
@@ -75,9 +76,9 @@ int bufferAppendString(struct Buffer* buffer, const char* data) {
 		return -1;
 	}
 	int size = strlen(data);
-	//À©ÈÝ
+	//æ‰©å®¹
 	bufferExtendRoom(buffer, size);
-	//Êý¾Ý¿½±´
+	//æ•°æ®æ‹·è´
 	memcpy(buffer->data + buffer->writePos, data, size);
 	buffer->writePos += size;
 	return 0;
@@ -101,22 +102,22 @@ int bufferSocketRead(struct Buffer* buffer, int fd) {
 	}
 	else {
 		buffer->writePos = buffer->capacity;
-		bufferAppendDate(buffer, tmpbuf, result - writeable);
+		bufferAppendData(buffer, tmpbuf, result - writeable);
 	}
 	free(tmpbuf);
 	return result;
 }
 
 char* bufferFindCRLF(struct Buffer* buffer) {
-	//strstr  ´ó×Ö·û´®ÖÐÆ¥Åä×Ó×Ö·û´® Óöµ½\0 ½áÊø
+	//strstr  å¤§å­—ç¬¦ä¸²ä¸­åŒ¹é…å­å­—ç¬¦ä¸² é‡åˆ°\0 ç»“æŸ
 
-	//memmem  ´óÊý¾Ý¿éÖÐÆ¥Åä×ÓÊý¾Ý¿é ÐèÒªÖÆ¶¨Êý¾Ý¿é´óÐ¡
+	//memmem  å¤§æ•°æ®å—ä¸­åŒ¹é…å­æ•°æ®å— éœ€è¦åˆ¶å®šæ•°æ®å—å¤§å°
 	char* ptr = memmem(buffer->data + buffer->readPos, bufferReadableSize(buffer), "\r\n", 2);
 	return ptr;
 }
 
 int bufferSendData(struct Buffer* buffer, int socket) {
-	//ÅÐ¶ÏÓÐÎÞÊý¾Ý
+	//åˆ¤æ–­æœ‰æ— æ•°æ®
 	int readable = bufferReadableSize(buffer);
 	if (readable > 0) {
 		int count = send(socket, buffer->data + buffer->readPos, readable, MSG_NOSIGNAL);

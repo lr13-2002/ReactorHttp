@@ -6,13 +6,13 @@ class EpollDispatcher : public Dispatcher {
 public:
 	EpollDispatcher(EventLoop* evLoop);
 	~EpollDispatcher();
-	int add();
-	int remove();
-	int modify();
-	int dispatch(int timeout = 2);
+	int add() override;
+	int remove() override;
+	int modify() override;
+	int dispatch(int timeout = 2) override;
 private:
 	int epollctl(int op);
 	int m_epfd;
-	epoll_event* m_events;
+	struct epoll_event* m_events;
 	const int MaxNode = 520;
 };

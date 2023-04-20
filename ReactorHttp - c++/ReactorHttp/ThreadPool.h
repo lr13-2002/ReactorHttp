@@ -3,19 +3,20 @@
 #include "WorkerThread.h"
 #include <stdlib.h>
 #include <assert.h>
-//¶¨ÒåÏß³Ì³Ø
-struct ThreadPool {
-	//Ö÷Ïß³ÌµÄ·´Ó¦¶ÑÄ£ĞÍ
-	struct EventLoop* mainLoop;
-	bool isStart;
-	int threadNum;
-	struct WorkerThread* workerThreads;
-	int index;
+//å®šä¹‰çº¿ç¨‹æ± 
+class ThreadPool {
+public:
+	ThreadPool(EventLoop* mainLoop, int count);
+	~ThreadPool();
+	//å¯åŠ¨
+	void Run();
+	//å–å‡ºçº¿ç¨‹æ± ä¸­çš„æŸä¸ªå­çº¿ç¨‹çš„ååº”å †å®ä¾‹
+	EventLoop* takeWorkerEventLoop();
+private:
+	//ä¸»çº¿ç¨‹çš„ååº”å †æ¨¡å‹
+	EventLoop* m_mainLoop;
+	bool m_isStart;
+	int m_threadNum;
+	vector< WorkerThread*> m_workerThreads;
+	int m_index;
 };
-
-//³õÊ¼»¯Ïß³Ì³Ø
-struct ThreadPoll* threadPoolInit(struct EventLoop* mainLoop, int count);
-//Æô¶¯Ïß³Ì³Ø
-void threadPoolRun(struct ThreadPool* pool);
-//È¡³öÏß³Ì³ØÖĞµÄÄ³¸ö×ÓÏß³ÌµÄ·´Ó¦¶ÑÊµÀı
-struct EventLoop* takeWorkerEventLoop(struct ThreadPool* pool);

@@ -7,123 +7,112 @@
 #include <strings.h>
 #include <stdlib.h>
 
-struct Buffer* bufferInit(int size) {
-	struct Buffer* buffer = (struct Buffer*)malloc(sizeof(struct Buffer));
-
-	if (buffer != NULL) {
-		buffer->data = (char*)malloc(sizeof(char));
-		buffer->capacity = size;
-		buffer->readPos = 0;
-		buffer->writePos = 0;
-		memset(buffer->data, 0, sizeof(buffer->data));
-	}
-	return buffer;
+Buffer::Buffer(int size) : m_capacity(size){
+	m_data = (char*)malloc(sizeof(char));
+	bzero(m_data, size);
 }
 
-void bufferDestroy(struct Buffer* buffer) {
-	if (buffer != NULL) {
-		free(buffer->data);
-		free(buffer);
+Buffer::~Buffer() {
+	if (m_data != nullptr) {
+		free(m_data);
 	}
 }
 
-void bufferExtendRoom(struct Buffer* buffer, int size) {
-	//ƒ⁄¥Ê≤ªπª”√ ≤ª–Ë“™¿©»›
-	if (bufferWriteableSize(buffer) >= size) {
+void Buffer::extendRoom(int size) {
+	//ÂÜÖÂ≠ò‰∏çÂ§üÁî® ‰∏çÈúÄË¶ÅÊâ©ÂÆπ
+	if (WriteableSize() >= size) {
+		return;
 	}
-	//ƒ⁄¥Ê–Ë“™∫œ≤¢≤≈πª”√
-	else if (buffer->readPos + bufferWriteableSize(buffer) >= size) {
-		int readable = bufferReadableSize(buffer);
-		memcpy(buffer->data, buffer->data + buffer->readPos, readable);
-		buffer->writePos = readable;
-		buffer->readPos = 0;
+	//ÂÜÖÂ≠òÈúÄË¶ÅÂêàÂπ∂ÊâçÂ§üÁî®
+	else if (m_readPos + WriteableSize() >= size) {
+		int readable = ReadableSize();
+		memcpy(m_data, m_data + m_readPos, readable);
+		m_writePos = readable;
+		m_readPos = 0;
 	}
-	//ƒ⁄¥Ê≤ªπª”√¿©»›
+	//ÂÜÖÂ≠ò‰∏çÂ§üÁî®Êâ©ÂÆπ
 	else {
-		void* temp = realloc(buffer->data, buffer->capacity + size);
-		if (temp == NULL) {
+		void* temp = realloc(m_data, m_capacity + size);
+		if (temp == nullptr) {
 			return;
 		}
-		memset(temp + buffer->capacity, 0, size);
-		buffer->data = temp;
-		buffer->capacity += size;
+		memset((char*)temp + m_capacity, 0, size);
+		m_data = (char*)temp;
+		m_capacity += size;
 	}
 }
 
-int bufferWriteableSize(struct Buffer* buffer) {
-	return buffer->capacity - buffer->writePos;
-}
-
-int bufferReadableSize(struct Buffer* buffer) {
-	return buffer->writePos - buffer->readPos;
-}
-
-int bufferAppendDate(struct Buffer* buffer, const char* data, int size) {
-	if (buffer == NULL || data == NULL || data <= 0) {
+int Buffer::AppendString(const char* data, int size) {
+	if (data == nullptr || size <= 0) {
 		return -1;
 	}
-	//¿©»›
-	bufferExtendRoom(buffer, size);
-	// ˝æ›øΩ±¥
-	memcpy(buffer->data + buffer->writePos, data, size);
-	buffer->writePos += size;
+	//Êâ©ÂÆπ
+	extendRoom(size);
+	//Êï∞ÊçÆÊã∑Ë¥ù
+	memcpy(m_data + m_writePos, m_data, size);
+	m_writePos += size;
 	return 0;
 }
 
-int bufferAppendString(struct Buffer* buffer, const char* data) {
-	if (buffer == NULL || data == NULL || data <= 0) {
+int Buffer::AppendString(const char* data) {
+	if (m_data == nullptr || data == nullptr) {
 		return -1;
 	}
 	int size = strlen(data);
-	//¿©»›
-	bufferExtendRoom(buffer, size);
-	// ˝æ›øΩ±¥
-	memcpy(buffer->data + buffer->writePos, data, size);
-	buffer->writePos += size;
+	//Êâ©ÂÆπ
+	extendRoom(size);
+	//Êï∞ÊçÆÊã∑Ë¥ù
+	memcpy(m_data + m_writePos, data, size);
+	m_writePos += size;
 	return 0;
 }
 
-int bufferSocketRead(struct Buffer* buffer, int fd) {
+int Buffer::AppendString(const string data) {
+	return AppendString(data.data());
+}
+
+int Buffer::SocketRead(int fd) {
 	//read/recv/readv;
 	struct iovec vec[2];
-	int writeable = bufferWriteableSize(buffer);
-	vec[0].iov_base = buffer->data + buffer->writePos;
+	int writeable = WriteableSize();
+	vec[0].iov_base = m_data + m_writePos;
 	vec[0].iov_len = writeable;
 	char* tmpbuf = (char*)malloc(40960);
-	vec[1].iov_base = buffer->data + buffer->writePos;
+	vec[1].iov_base = m_data + m_writePos;
 	vec[1].iov_len = 40960;
 	int result = readv(fd, vec, 2);
 	if (result == -1) {
 		return -1;
 	}
 	else if (result <= writeable) {
-		buffer->writePos += result;
+		m_writePos += result;
 	}
 	else {
-		buffer->writePos = buffer->capacity;
-		bufferAppendDate(buffer, tmpbuf, result - writeable);
+		m_writePos = m_capacity;
+		AppendString(tmpbuf, result - writeable);
 	}
 	free(tmpbuf);
 	return result;
 }
 
-char* bufferFindCRLF(struct Buffer* buffer) {
-	//strstr  ¥Û◊÷∑˚¥Æ÷–∆•≈‰◊”◊÷∑˚¥Æ ”ˆµΩ\0 Ω· ¯
+char* Buffer::FindCRLF() {
+	//strstr  Â§ßÂ≠óÁ¨¶‰∏≤‰∏≠ÂåπÈÖçÂ≠êÂ≠óÁ¨¶‰∏≤ ÈÅáÂà∞\0 ÁªìÊùü
 
-	//memmem  ¥Û ˝æ›øÈ÷–∆•≈‰◊” ˝æ›øÈ –Ë“™÷∆∂® ˝æ›øÈ¥Û–°
-	char* ptr = memmem(buffer->data + buffer->readPos, bufferReadableSize(buffer), "\r\n", 2);
+	//memmem  Â§ßÊï∞ÊçÆÂùó‰∏≠ÂåπÈÖçÂ≠êÊï∞ÊçÆÂùó ÈúÄË¶ÅÂà∂ÂÆöÊï∞ÊçÆÂùóÂ§ßÂ∞è
+	char* ptr = (char*)memmem(m_data + m_readPos, ReadableSize(), "\r\n", 2);
 	return ptr;
 }
 
-int bufferSendData(struct Buffer* buffer, int socket) {
-	//≈–∂œ”–Œﬁ ˝æ›
-	int readable = bufferReadableSize(buffer);
+int Buffer::SendData(int socket) {
+	//Âà§Êñ≠ÊúâÊó†Êï∞ÊçÆ
+	int readable = ReadableSize();
 	if (readable > 0) {
-		int count = send(socket, buffer->data + buffer->readPos, readable, MSG_NOSIGNAL);
+		int count = send(socket, m_data + m_readPos, readable, MSG_NOSIGNAL);
 		if (count) {
-			buffer->readPos += count;
+			m_readPos += count;
 			usleep(1);
 		}
+		return count;
 	}
 	return 0;
 }

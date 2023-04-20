@@ -4,57 +4,41 @@
 #include <stdio.h>
 
 #define ResHeaderSize 16;
-struct HttpResponse* httpResponseInit() {
-	struct HttpResponse* response = (struct HttpResponse*)malloc(sizeof(struct HttpResponse));
-	response->headerNum = 0;
-	int size = sizeof(struct ResponseHeader)* ResHeaderSize;
-	response->headers = (struct ResponseHeader*)malloc(size);
-	response->statusCode = Unknown;
-	// 初始化数组
-	bzero(response->headers, size);
-	bzero(response->statusMsg, sizeof(response->statusMsg));
-	bzero(response->fileName, sizeof(response->fileName));
-	//函数指针
-	response->sendDataFunc = NULL;
-	return response;
+HttpResponse::HttpResponse() {
+	m_statusCode = StatusCode::Unknown;
+	m_filename = "";
+	m_headers.clear();
+	sendDataFunc = nullptr;
+}
+HttpResponse::~HttpResponse() {
 
 }
 
-void httpResponseDestroy(struct HttpResponse* response) {
-	if (response != NULL) {
-		free(response->headers);
-		free(response);
-	}
-}
-
-void httpResponseAddHeader(struct HttpResponse* response, const char* key, const char* value) {
-	if (response == NULL || key == NULL || value == NULL) {
+void HttpResponse::AddHeader(const string key, const string value) {
+	if (key.empty() || value.empty()) {
 		return ;
 	}
-	strcpy(response->headers[response->headerNum].key, key);
-	strcpy(response->headers[response->headerNum].value, value);
-	response->headerNum++;
+	m_headers.insert({ key, value });
 }
 
-void httpResponsePrepareMsg(struct HttpResponse* response, struct Buffer* sendBuf, int socket) {
+void HttpResponse::PrepareMsg(Buffer* sendBuf, int socket) {
 	//状态行
 	char tmp[1024] = { 0 };
-	sprintf(tmp, "HTTP/1.1 %d %s\r\n", response->statusCode, response->statusMsg);
-	bufferAppendString(sendBuf, tmp);
+	sprintf(tmp, "HTTP/1.1 %d %s\r\n", m_statusCode, m_info.at((int)m_statusCode));
+	sendBuf->AppendString(tmp);
 	//响应头
-	for (int i = 0; i < response->headerNum; i++) {
-		sprintf(tmp, "%s: %s\r\n", response->headers[i].key, response->headers[i].value);
-		bufferAppendString(sendBuf, tmp);
+	for (auto [x,y] : m_headers) {
+		sprintf(tmp, "%s: %s\r\n", x.data(), y.data());
+		sendBuf->AppendString(tmp);
 	}
 	//空行
-	bufferAppendString(sendBuf, "\r\n");
+	sendBuf->AppendString("\r\n");
 #ifndef MSG_SEND_AUTO
-	bufferSendData(sendBuf, socket)
+	sendBuf->SendData(socket);
 #endif // !MSG_SEND_AUTO
 
-	;
 
 	//回复的数据
-	response->sendDataFunc(response->fileName, sendBuf, socket);
+	sendDataFunc(m_filename, sendBuf, socket);
 
 }

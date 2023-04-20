@@ -5,18 +5,21 @@
 #include "HttpRequest.h"
 #include "HttpResponse.h"
 //#define MSG_SEND_AUTO
-struct TcpConnection {
-	struct EventLoop* evLoop;
-	struct Channel* channel;
-	struct Buffer* readBuf;
-	struct Buffer* writeBuf;
-	struct HttpRequest* request;
-	struct HttpResponse* response;
-	char name[32];
+class TcpConnection {
+public:
+	TcpConnection(int fd, EventLoop* evloop);
+	~TcpConnection();
+	static int destroy(void* arg);
+	static int processRead(void* arg);
+	static int processWrite(void* arg);
+private:
+	EventLoop* m_evLoop;
+	Channel* m_channel;
+	Buffer* m_readBuf;
+	Buffer* m_writeBuf;
+	//http ÂçèËÆÆ
+	HttpRequest* m_request;
+	HttpResponse* m_response;
+	string name;
 
 };
-
-//≥ı ºªØ
-struct TcpConnection* tcpConnectionInit(int fd, struct EventLoop* evLoop);
-
-int tcpConnectionDestroy(void* arg);

@@ -107,6 +107,8 @@
       <CLanguageStandard>gnu11</CLanguageStandard>
       <AdditionalOptions>
       </AdditionalOptions>
+      <CppLanguageStandard>c++17</CppLanguageStandard>
+      <DebugInformationFormat>FullDebug</DebugInformationFormat>
     </ClCompile>
     <Link>
       <LibraryDependencies>pthread</LibraryDependencies>
@@ -117,6 +119,7 @@
       <CLanguageStandard>gnu11</CLanguageStandard>
       <AdditionalOptions>
       </AdditionalOptions>
+      <CppLanguageStandard>c++17</CppLanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

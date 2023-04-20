@@ -1,7 +1,9 @@
 #pragma once
 #include "Buffer.h"
-//¶¨Òå×´Ì¬ÂëÃ¶¾Ù
-enum HttpStatusCode {
+#include <map>
+#include <functional>
+//å®šä¹‰çŠ¶æ€ç æšä¸¾
+enum class StatusCode {
 	Unknown = 0,
 	OK = 200,
 	MovedPermanently = 301,
@@ -9,31 +11,35 @@ enum HttpStatusCode {
 	BadRequest = 400,
 	NotFound = 404
 };
-
-//¶¨ÒåÏìÓ¦½á¹¹Ìå
-struct ResponseHeader {
-	//×´Ì¬ĞĞ£º×´Ì¬Âë£¬×´Ì¬ÃèÊö
-	char key[32];
-	char value[128];
+//å®šä¹‰ä¸€ä¸ªå‡½æ•°æŒ‡é’ˆï¼Œç”¨æ¥ç»„ç»‡è¦æ¢å¤çš„å®¢æˆ·ç«¯çš„æ•°æ®å—
+//å®šä¹‰ç»“æ„ä½“
+class HttpResponse {
+public:
+	HttpResponse();
+	~HttpResponse();
+	function<void(const string, Buffer*, int)> sendDataFunc;
+	//æ·»åŠ å“åº”å¤´
+	void AddHeader(const string key, const string value);
+	//ç»„ç»‡ http å“åº”æ•°æ®
+	void PrepareMsg(Buffer* sendBuf, int socket);
+	inline void setFileName(string name) {
+		m_filename = name;
+	}
+	inline void setStatusCode(StatusCode statusCode) {
+		m_statusCode = statusCode;
+	}
+private:
+	//çŠ¶æ€è¡Œï¼šçŠ¶æ€ç ï¼ŒçŠ¶æ€æè¿°
+	StatusCode m_statusCode;
+	string m_filename;
+	//å“åº”å¤´-é”®å€¼å¯¹
+	map<string, string> m_headers;
+	//å®šä¹‰çŠ¶æ€ç å’Œæè¿°çš„å¯¹åº”å…³ç³»
+	const map<int, string> m_info = {
+		{200,"OK"},
+		{301,"MovedPermanently"},
+		{302,"MovedTemporarily"},
+		{400,"BadRequest"},
+		{404,"NotFound"}
+	};
 };
-//¶¨ÒåÒ»¸öº¯ÊıÖ¸Õë£¬ÓÃÀ´×éÖ¯Òª»Ö¸´µÄ¿Í»§¶ËµÄÊı¾İ¿é
-typedef int(*responseBody)(const char* fileName, struct Buffer* sendBuf, int socket);
-//¶¨Òå½á¹¹Ìå
-struct HttpResponse {
-	//×´Ì¬ĞĞ£º×´Ì¬Âë£¬×´Ì¬ÃèÊö
-	enum HttpStatusCode statusCode;
-	char statusMsg[128];
-	char fileName[128];
-	//ÏìÓ¦Í·-¼üÖµ¶Ô
-	struct ResponseHeader* headers;
-	int headerNum;
-	responseBody sendDataFunc;
-};
-//³õÊ¼»¯
-struct HttpResponse* httpResponseInit();
-//Ïú»Ù
-void httpResponseDestroy(struct HttpResponse* response);
-//Ìí¼ÓÏìÓ¦Í·
-void httpResponseAddHeader(struct HttpResponse* response, const char* key, const char* value);
-//×éÖ¯ http ÏìÓ¦Êı¾İ
-void httpResponsePrepareMsg(struct HttpResponse* response, struct Buffer* sendBuf, int socket);

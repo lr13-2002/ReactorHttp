@@ -1,39 +1,42 @@
 #include "ThreadPool.h"
 #include <assert.h>
 #include <stdio.h>
-struct ThreadPoll* threadPoolInit(struct EventLoop* mainLoop, int count) {
-	struct ThreadPool* pool = (struct ThreadPool*)malloc(sizeof(struct ThreadPool));
-	pool->index = 0;
-	pool->isStart = 0;
-	pool->mainLoop = mainLoop;
-	pool->threadNum = count;
-	pool->workerThreads = (struct WorkerThread*)malloc(sizeof(struct WorkerThread) * count);
-	return pool;
+ThreadPool::ThreadPool(EventLoop* mainLoop, int count) {
+	m_index = 0;
+	m_isStart = 0;
+	m_mainLoop = mainLoop;
+	m_threadNum = count;
+	m_workerThreads.clear();
 }
-
-void threadPoolRun(struct ThreadPool* pool) {
+ThreadPool::~ThreadPool() {
+	for (auto item : m_workerThreads) {
+		delete item;
+	}
+}
+void ThreadPool::Run() {
 	assert(pool && !pool->isStart);
-	if (pool->mainLoop->threadID != pthread_self()) {
+	if (m_mainLoop->getThreadID() != this_thread::get_id()) {
 		exit(0);
 	}
-	pool->isStart = true;
-	if (pool->threadNum) {
-		for (int i = 0; i < pool->threadNum; i++) {
-			workerThreadInit(&pool->workerThreads[i], i);
-			workerThreadRun(&pool->workerThreads[i]);
+	m_isStart = true;
+	if (m_threadNum) {
+		for (int i = 0; i < m_threadNum; i++) {
+			WorkerThread* subThread = new WorkerThread(i);
+			subThread->Run();
+			m_workerThreads.push_back(subThread);
 		}
 	}
 }
 
-struct EventLoop* takeWorkerEventLoop(struct ThreadPool* pool) {
-	assert(pool->isStart);
-	if (pool->mainLoop->threadID != pthread_self()) {
+EventLoop* ThreadPool::takeWorkerEventLoop() {
+	assert(m_isStart);
+	if (m_mainLoop->getThreadID() != this_thread::get_id()) {
 		exit(0);
 	}
-	struct EventLoop* evLoop = pool->mainLoop;
-	if (pool->threadNum > 0) {
-		evLoop = pool->workerThreads[pool->index].evLoop;
-		pool->index = ++pool->index % pool->threadNum;
+	EventLoop* evLoop = m_mainLoop;
+	if (m_threadNum > 0) {
+		evLoop = m_workerThreads[m_index]->getEvebtLoop();
+		m_index = ++m_index % m_threadNum;
 	}
 	return evLoop;
 	

@@ -6,12 +6,12 @@
 
 #if DEBUG
 /*
-*  Èç¹û²»¼Ó do ... while(0) ÔÚ½øÐÐÌõ¼þÅÐ¶ÏµÄÊ±ºò(Ö»ÓÐÒ»¾ä»°), Ê¡ÂÔÁË{}, ¾Í»á³öÏÖÓï·¨´íÎó
+*  å¦‚æžœä¸åŠ  do ... while(0) åœ¨è¿›è¡Œæ¡ä»¶åˆ¤æ–­çš„æ—¶å€™(åªæœ‰ä¸€å¥è¯), çœç•¥äº†{}, å°±ä¼šå‡ºçŽ°è¯­æ³•é”™è¯¯
 *  if
 *     xxxxx
 *  else
 *     xxxxx
-*  ºê±»Ìæ»»Ö®ºó, ÔÚ else Ç°Ãæ»á³öÏÖÒ»¸ö ;  --> Óï·¨´íÎó
+*  å®è¢«æ›¿æ¢ä¹‹åŽ, åœ¨ else å‰é¢ä¼šå‡ºçŽ°ä¸€ä¸ª ;  --> è¯­æ³•é”™è¯¯
 */
 #define LOG(type, fmt, args...)  \
   do{\
@@ -19,11 +19,11 @@
     printf(fmt, ##args);\
     printf("]\n\n");\
   }while(0)
-#define Debug(fmt, args...) LOG("DEBUG", fmt, ##args)
+#define debug(fmt, args...) LOG("DEBUG", fmt, ##args)
 #define Error(fmt, args...) do{LOG("ERROR", fmt, ##args);exit(0);}while(0)
 #else
 #define LOG(fmt, args...)  
-#define Debug(fmt, args...)
+#define debug(fmt, args...)
 #define Error(fmt, args...)
 #endif
 

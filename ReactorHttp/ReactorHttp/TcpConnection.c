@@ -5,10 +5,10 @@
 
 int processRead(void* arg) {
 	struct TcpConnection* conn = (struct TcpConnection*)arg;
-	//½ÓÊÕÊý¾Ý
+	//æŽ¥æ”¶æ•°æ®
 	int count = bufferSocketRead(conn->readBuf, conn->channel->fd);
 	if (count > 0) {
-		//½ÓÊÕµ½ÁË http ÇëÇó £¬½âÎö http ÇëÇó
+		//æŽ¥æ”¶åˆ°äº† http è¯·æ±‚ ï¼Œè§£æž http è¯·æ±‚
 		int socket = conn->channel->fd;
 #ifndef  MSG_SEND_AUTO
 		writeEventEnable(conn->channel, true);
@@ -17,19 +17,19 @@ int processRead(void* arg) {
 		int flag = parseHttpRequest(conn->request, conn->readBuf, conn->response,
 			conn->writeBuf, socket);
 		if (!flag) {
-			//½âÎöÊ§°Ü£¬»Ø¸´Ò»¸ö¼òµ¥µÄhtml
+			//è§£æžå¤±è´¥ï¼Œå›žå¤ä¸€ä¸ªç®€å•çš„html
 			char* errMsg = "Http/1.1 400 Bad Request\r\n\r\n";
 			bufferAppendString(conn->writeBuf, errMsg);
 		}
 	}
 	else {
 #ifdef  MSG_SEND_AUTO
-		//¶Ï¿ªÁ¬½Ó
+		//æ–­å¼€è¿žæŽ¥
 		eventLoopAddTask(conn->evLoop, conn->channel, DELETE);
 #endif
 	}
 #ifndef  MSG_SEND_AUTO
-	//¶Ï¿ªÁ¬½Ó
+	//æ–­å¼€è¿žæŽ¥
 	eventLoopAddTask(conn->evLoop, conn->channel, DELETE);
 #endif
 	return 0;
@@ -37,16 +37,16 @@ int processRead(void* arg) {
 
 int processWrite(void* arg) {
 	struct TcpConnection* conn = (struct TcpConnection*)arg;
-	//·¢ËÍÊý¾Ý
+	//å‘é€æ•°æ®
 	int count = bufferSendData(conn->writeBuf, conn->channel->fd);
 	if (count > 0) {
-		//ÅÐ¶ÏÊý¾ÝÊÇ·ñ±»È«²¿·¢³öÈ¥
+		//åˆ¤æ–­æ•°æ®æ˜¯å¦è¢«å…¨éƒ¨å‘å‡ºåŽ»
 		if (bufferReadableSize(conn->writeBuf) == 0) {
-			//²»ÔÙ¼ì²âÐ´ÊÂ¼þ
+			//ä¸å†æ£€æµ‹å†™äº‹ä»¶
 			writeEventEnable(conn->channel, false);
-			//ÐÞ¸Ä dispatcher ¼ì²âµÄ¼¯ºÏ
+			//ä¿®æ”¹ dispatcher æ£€æµ‹çš„é›†åˆ
 			eventLoopAddTask(conn->evLoop, conn->channel, MODIFY);
-			//É¾³ýÕâ¸ö½Úµã
+			//åˆ é™¤è¿™ä¸ªèŠ‚ç‚¹
 			eventLoopAddTask(conn->evLoop, conn->channel, DELETE);
 		}
 	}

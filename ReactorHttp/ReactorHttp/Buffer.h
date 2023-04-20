@@ -6,25 +6,25 @@ struct Buffer {
 	int readPos;
 	int writePos;
 };
-//³õÊ¼»¯
+//åˆå§‹åŒ–
 struct Buffer* bufferInit(int size);
-//Îö¹¹
+//ææ„
 void bufferDestroy(struct Buffer* buffer);
-//À©Èİ
+//æ‰©å®¹
 void bufferExtendRoom(struct Buffer* buffer, int size);
-//µÃµ½Ê£ÓàµÄ¿ÉĞ´µÄÄÚ´æÈİÁ¿
+//å¾—åˆ°å‰©ä½™çš„å¯å†™çš„å†…å­˜å®¹é‡
 int bufferWriteableSize(struct Buffer* buffer);
-//µÃµ½Ê£ÓàµÄ¿É¶ÁµÄÄÚ´æÈİÁ¿
+//å¾—åˆ°å‰©ä½™çš„å¯è¯»çš„å†…å­˜å®¹é‡
 int bufferReadableSize(struct Buffer* buffer);
 
-//Ö±½ÓĞ´
-int bufferAppendDate(struct Buffer* buffer, const char* data, int size);
+//ç›´æ¥å†™
+int bufferAppendData(struct Buffer* buffer, const char* data, int size);
 
 int bufferAppendString(struct Buffer* buffer, const char* data);
 
-//½ÓÊÕÌ×½Ó×ÖÊı¾İ
+//æ¥æ”¶å¥—æ¥å­—æ•°æ®
 int bufferSocketRead(struct Buffer* buffer, int fd);
-//¸ù¾İ/r/nÈ¡³öÒ»ĞĞ£¬ÕÒµ½ÆäÔÚÊı¾İ¿éÖĞµÄÎ»ÖÃ£¬·µ»Ø¸ÃÎ»ÖÃ
+//æ ¹æ®/r/nå–å‡ºä¸€è¡Œï¼Œæ‰¾åˆ°å…¶åœ¨æ•°æ®å—ä¸­çš„ä½ç½®ï¼Œè¿”å›è¯¥ä½ç½®
 char* bufferFindCRLF(struct Buffer* buffer);
-//·¢ËÍÊı¾İ
+//å‘é€æ•°æ®
 int bufferSendData(struct Buffer* buffer, int socket);

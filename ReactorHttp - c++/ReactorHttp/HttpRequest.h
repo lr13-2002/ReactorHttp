@@ -2,52 +2,76 @@
 #include <stdbool.h>
 #include "Buffer.h"
 #include "HttpResponse.h"
-//ÇëÇóÍ·¼üÖµ¶Ô
-struct RequestHeader {
-	char* key;
-	char* value;
-};
-//µ±Ç°µÄ½âÎö×´Ì¬
-enum HttpRequestState{
+#include <map>
+#include <functional>
+
+using namespace std;
+//å½“å‰çš„è§£æçŠ¶æ€
+enum class PrecessState :char {
 	ParseReqLine,
 	ParseReqHeaders,
 	ParseReqBody,
 	ParseReqDone
 };
-//¶¨Òå http ÇëÇó½á¹¹Ìå
-struct HttpRequest {
-	char* method;
-	char* url;
-	char* version;
-	struct RequestHeader* reqHeaders;
-	int reqHeadersNum;
-	enum HttpRequestState curState;
+//å®šä¹‰ http è¯·æ±‚ç»“æ„ä½“
+class HttpRequest {
+public:
+	HttpRequest();
+	void Reset();
+	//æ ¹æ® key å¾—åˆ°è¯·æ±‚å¤´çš„ value
+	string GetHeader(const string key);
+	//æ·»åŠ è¯·æ±‚å¤´
+	void AddHeader(const string key, const string value);
+	//è§£æè¯·æ±‚è¡Œ
+	bool parseRequestLine(Buffer* readBuf);
+	//è§£æè¯·æ±‚å¤´
+	bool parseRequestHeader(struct Buffer* readBuf);
+	//è§£æ http è¯·æ±‚åè®®
+	bool parseRequest(Buffer* readBuf, HttpResponse* response, Buffer* sendBuf, int socket);
+
+	//å¤„ç†åŸºäº get çš„ http è¯·æ±‚åè®®
+	bool processRequest(HttpResponse* response);
+
+	//toå­˜å‚¨è§£ç ä¹‹åçš„æ•°æ®ï¼Œä¼ å‡ºå‚æ•°ï¼Œfromè¢«è§£ç çš„æ•°æ®ï¼Œä¼ å…¥å‚æ•°
+	string decodeMsg(string from);
+
+	const string getFiletype(const string name);
+
+	static int sendDir(const string dirName, Buffer* sendBuf, int cfd);
+
+	static void sendFile(const string fileName, Buffer* sendBuf, int cfd);
+
+	inline void setMethod(const string method) {
+		m_method = method;
+	}
+
+	inline void setUrl(string url) {
+		m_url = url;
+	}
+
+	inline void setVersion(string version) {
+		m_version = version;
+	}
+
+	//è·å–å¤„ç†çŠ¶æ€
+	inline PrecessState getState() {
+		return m_curState;
+	}
+
+	inline void setState(PrecessState curState) {
+		m_curState = curState;
+	}
+
+private:
+	char* splitRequestLine(const char* start, const char* end, const char* sub, function<void(string)> callback);
+	int hexToDec(char c);
+	string m_method;
+	string m_url;
+	string m_version;
+	map<string, string>m_reqHeaders;
+	PrecessState m_curState;
 };
-//³õÊ¼»¯
-struct HttpRequest* httpRequestInit();
 
-//ÖØÖÃ
-void httpRequestReset(struct HttpRequest* req);
-void httpRequestResetEx(struct HttpRequest* req);
-void httpRequestDestroy(struct HttpRequest* req);
-//»ñÈ¡´¦Àí×´Ì¬
-enum HttpRequestState HttpRequestState(struct HttpRequest* request);
-//Ìí¼ÓÇëÇóÍ·
-void httpRequestAddHeader(struct HttpRequest* request, const char* key, const char* value);
-//¸ù¾İ key µÃµ½ÇëÇóÍ·µÄ value
-char* httpRequestGetHeader(struct HttpRequest* request, const char* key);
-//½âÎöÇëÇóĞĞ
-bool parseHttpRequestLine(struct HttpRequest* request, struct Buffer* readBuf);
-//½âÎöÇëÇóÍ·
-bool parseHttpRequestHeader(struct HttpRequest* request, struct Buffer* readBuf);
-//½âÎö http ÇëÇóĞ­Òé
-bool parseHttpRequest(struct HttpRequest* request, struct Buffer* readBuf, 
-	struct HttpResponse* response, struct Buffer* sendBuf, int socket);
-//´¦Àí»ùÓÚ get µÄ http ÇëÇóĞ­Òé
-bool processHttpRequest(struct HttpRequest* request, struct HttpResponse* response);
-
-const char* getFiletype(const char* name);
 //
-int sendDir(const char* dirName, struct Buffer* sendBuf, int cfd);
 
-int sendFile(const char* fileName, struct Buffer* sendBuf, int cfd);
+

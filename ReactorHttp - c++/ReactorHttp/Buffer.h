@@ -1,30 +1,43 @@
 #pragma once
-
+#include <string>
+using namespace std;
 struct Buffer {
-	char* data;
-	int capacity;
-	int readPos;
-	int writePos;
+public:
+	Buffer(int size);
+	~Buffer();
+	//æ‰©å®¹
+	void extendRoom(int size);
+
+	//å¾—åˆ°å‰©ä½™çš„å¯å†™çš„å†…å­˜å®¹é‡
+	inline int WriteableSize() {
+		return m_capacity - m_writePos;
+	}
+	//å¾—åˆ°å‰©ä½™çš„å¯è¯»çš„å†…å­˜å®¹é‡
+	inline int ReadableSize() {
+		return m_writePos - m_readPos;
+	}
+	//ç›´æ¥å†™
+	int AppendString(const char* data, int size);
+	int AppendString(const char* data);
+	int AppendString(const string data);
+	//æ¥æ”¶å¥—æ¥å­—æ•°æ®
+	int SocketRead(int fd);
+	//æ ¹æ®/r/nå–å‡ºä¸€è¡Œï¼Œæ‰¾åˆ°å…¶åœ¨æ•°æ®å—ä¸­çš„ä½ç½®ï¼Œè¿”å›è¯¥ä½ç½®
+	char* FindCRLF();
+	//å‘é€æ•°æ®
+	int SendData(int socket);
+	//å¾—åˆ°è¯»æ•°æ®çš„èµ·å§‹ä½ç½®
+	inline char* data() {
+		return m_data + m_readPos;
+	}
+
+	inline int readPosIncrease(int count) {
+		m_readPos += count;
+		return m_readPos;
+	}
+private:
+	char* m_data;
+	int m_capacity;
+	int m_readPos;
+	int m_writePos;
 };
-//³õÊ¼»¯
-struct Buffer* bufferInit(int size);
-//Îö¹¹
-void bufferDestroy(struct Buffer* buffer);
-//À©Èİ
-void bufferExtendRoom(struct Buffer* buffer, int size);
-//µÃµ½Ê£ÓàµÄ¿ÉĞ´µÄÄÚ´æÈİÁ¿
-int bufferWriteableSize(struct Buffer* buffer);
-//µÃµ½Ê£ÓàµÄ¿É¶ÁµÄÄÚ´æÈİÁ¿
-int bufferReadableSize(struct Buffer* buffer);
-
-//Ö±½ÓĞ´
-int bufferAppendDate(struct Buffer* buffer, const char* data, int size);
-
-int bufferAppendString(struct Buffer* buffer, const char* data);
-
-//½ÓÊÕÌ×½Ó×ÖÊı¾İ
-int bufferSocketRead(struct Buffer* buffer, int fd);
-//¸ù¾İ/r/nÈ¡³öÒ»ĞĞ£¬ÕÒµ½ÆäÔÚÊı¾İ¿éÖĞµÄÎ»ÖÃ£¬·µ»Ø¸ÃÎ»ÖÃ
-char* bufferFindCRLF(struct Buffer* buffer);
-//·¢ËÍÊı¾İ
-int bufferSendData(struct Buffer* buffer, int socket);

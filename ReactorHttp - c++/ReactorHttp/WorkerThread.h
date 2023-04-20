@@ -1,18 +1,25 @@
 #pragma once
-#include <pthread.h>
+#include <thread>
 #include "EventLoop.h"
+#include <condition_variable>
 
-//¶¨Òå×ÓÏß³Ì¶ÔÓ¦µÄ½á¹¹Ìå
-struct WorkerThread {
-	pthread_t threadID;
-	char name[24];
-	pthread_mutex_t mutex;
-	pthread_cond_t cond;
-	struct EventLoop* evLoop;
+//å®šä¹‰å­çº¿ç¨‹å¯¹åº”çš„ç»“æ„ä½“
+class WorkerThread {
+public:
+	WorkerThread(int index);
+	~WorkerThread();
+	//å¯åŠ¨çº¿ç¨‹
+	void Run();
+	EventLoop* getEvebtLoop() {
+		return m_evLoop;
+	}
+private:
+	//å­çº¿ç¨‹çš„å›è°ƒå‡½æ•°
+	void Running();
+	thread* m_thread;
+	thread::id m_threadId;
+	string m_name;
+	mutex m_mutex;
+	condition_variable m_cond;
+	EventLoop* m_evLoop;
 };
-//³õÊ¼»¯
-int workerThreadInit(struct WorkerThread* thread, int index);
-//×ÓÏß³ÌµÄ»Øµ÷º¯Êı
-void* subThreadRunning(void* arg);
-//Æô¶¯Ïß³Ì
-void workerThreadRun(struct WorkerThread* thread);
